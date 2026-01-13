@@ -1,9 +1,8 @@
-```markdown
 # 🏷️ WMS Microdata - Gerador de Etiquetas
 
 Sistema de geração de etiquetas de endereçamento integrado ao ERP Microdata Sistemas para a Importadora DGB COMEX.
 
-![Preview](image.png)
+![Preview](image.webp)
 
 ## 📋 Visão Geral
 
