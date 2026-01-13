@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Etiquetas - Layout Específico</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-barcode"></i> Gerador de Etiquetas com Código de Barras</h1>
+            <p class="subtitle">Layout específico: 2 etiquetas por página (90x35 mm)</p>
+        </header>
+
+        <main>
+            <div class="card">
+                <h2><i class="fas fa-cog"></i> Configuração das Etiquetas</h2>
+                
+                <form id="form-etiquetas">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="inicio">
+                                <i class="fas fa-play-circle"></i> Código Inicial
+                            </label>
+                            <input type="text" id="inicio" name="inicio" 
+                                   placeholder="ex: 03.49.01.00" 
+                                   value="03.49.01.00" required
+                                   pattern="\d{2}\.\d{2}\.\d{2}\.\d{2}"
+                                   title="Formato: XX.XX.XX.XX">
+                            <small>Formato: XX.XX.XX.XX (apenas a 3ª parte varia)</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="fim">
+                                <i class="fas fa-stop-circle"></i> Código Final
+                            </label>
+                            <input type="text" id="fim" name="fim" 
+                                   placeholder="ex: 03.49.05.00" 
+                                   value="03.49.05.00" required
+                                   pattern="\d{2}\.\d{2}\.\d{2}\.\d{2}"
+                                   title="Formato: XX.XX.XX.XX">
+                            <small>Formato: XX.XX.XX.XX (apenas a 3ª parte varia)</small>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="endereco">
+                            <i class="fas fa-map-marker-alt"></i> Endereço Completo
+                        </label>
+                        <textarea id="endereco" name="endereco" rows="3" 
+                                  placeholder="RUA | PRÉDIO | NÍVEL | APARTAMENTO" required>RUA | PRÉDIO | NÍVEL | APARTAMENTO</textarea>
+                    </div>
+
+                    <div class="info-box">
+                        <h3><i class="fas fa-info-circle"></i> Resumo</h3>
+                        <p><strong>Quantidade de etiquetas:</strong> <span id="quantidade">5</span></p>
+                        <p><strong>Status:</strong> <span id="status" class="status-valid">Válido</span></p>
+                        <p><strong>Mensagem:</strong> <span id="mensagem">Serão geradas 5 etiquetas</span></p>
+                        <p><strong>Layout:</strong> <span id="layout">2 etiquetas por página (90x35 mm)</span></p>
+                        <p><strong>Nome do arquivo:</strong> <span id="nome-arquivo">etiquetas_03.49.01.00_a_03.49.05.00.pdf</span></p>
+                    </div>
+
+                    <div class="buttons">
+                        <button type="button" id="btn-calcular" class="btn btn-secondary">
+                            <i class="fas fa-calculator"></i> Calcular
+                        </button>
+                        <button type="submit" id="btn-gerar" class="btn btn-primary">
+                            <i class="fas fa-file-pdf"></i> Gerar PDF
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2><i class="fas fa-lightbulb"></i> Regras de Formatação</h2>
+                <div class="rules">
+                    <div class="rule">
+                        <h4><i class="fas fa-exclamation-triangle"></i> ATENÇÃO:</h4>
+                        <p>Apenas a <strong>3ª parte do código pode variar</strong>.</p>
+                        <p>Exemplo válido: <code>03.49.01.00</code> até <code>03.49.05.00</code></p>
+                        <p><em>As partes 1, 2 e 4 devem ser iguais!</em></p>
+                    </div>
+                    
+                    <div class="rule">
+                        <h4><i class="fas fa-check-circle"></i> Exemplos Válidos:</h4>
+                        <ul>
+                            <li><strong>03.49.01.00</strong> até <strong>03.49.05.00</strong> → 5 etiquetas</li>
+                            <li><strong>05.28.01.00</strong> até <strong>05.28.02.00</strong> → 2 etiquetas</li>
+                            <li><strong>05.22.01.00</strong> até <strong>05.22.99.00</strong> → 99 etiquetas</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="rule">
+                        <h4><i class="fas fa-times-circle"></i> Exemplos Inválidos:</h4>
+                        <ul>
+                            <li><strong>03.49.01.00</strong> até <strong>03.50.05.00</strong> → 2ª parte diferente</li>
+                            <li><strong>03.49.01.00</strong> até <strong>04.49.05.00</strong> → 1ª parte diferente</li>
+                            <li><strong>03.49.01.00</strong> até <strong>03.49.05.01</strong> → 4ª parte diferente</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><i class="fas fa-print"></i> Especificações Técnicas</h2>
+                <div class="specs">
+                    <div class="spec-item">
+                        <i class="fas fa-ruler"></i>
+                        <div>
+                            <h4>Tamanho da Página</h4>
+                            <p>99,8 mm × 80,0 mm</p>
+                        </div>
+                    </div>
+                    <div class="spec-item">
+                        <i class="fas fa-tag"></i>
+                        <div>
+                            <h4>Tamanho da Etiqueta</h4>
+                            <p>90 mm × 35 mm</p>
+                        </div>
+                    </div>
+                    <div class="spec-item">
+                        <i class="fas fa-layer-group"></i>
+                        <div>
+                            <h4>Etiquetas por Página</h4>
+                            <p>2 etiquetas (uma acima da outra)</p>
+                        </div>
+                    </div>
+                    <div class="spec-item">
+                        <i class="fas fa-barcode"></i>
+                        <div>
+                            <h4>Código de Barras</h4>
+                            <p>Code128 incluído em cada etiqueta</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Gerador de Etiquetas &copy; 2024 | Layout específico para impressão</p>
+        </footer>
+    </div>
+
+    <div id="loading" class="loading-overlay">
+        <div class="loading-content">
+            <i class="fas fa-spinner fa-spin fa-3x"></i>
+            <p>Gerando PDF com código de barras...</p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('form-etiquetas');
+            const inicioInput = document.getElementById('inicio');
+            const fimInput = document.getElementById('fim');
+            const enderecoInput = document.getElementById('endereco');
+            const quantidadeSpan = document.getElementById('quantidade');
+            const statusSpan = document.getElementById('status');
+            const mensagemSpan = document.getElementById('mensagem');
+            const nomeArquivoSpan = document.getElementById('nome-arquivo');
+            const btnGerar = document.getElementById('btn-gerar');
+            const loadingOverlay = document.getElementById('loading');
+
+            function formatarNomeArquivo() {
+                const inicio = inicioInput.value.trim();
+                const fim = fimInput.value.trim();
+                if (inicio && fim) {
+                    nomeArquivoSpan.textContent = `etiquetas_${inicio}_a_${fim}.pdf`;
+                }
+            }
+
+            function validarCodigo(codigo) {
+                const padrao = /^\d{2}\.\d{2}\.\d{2}\.\d{2}$/;
+                return padrao.test(codigo);
+            }
+
+            async function calcularQuantidade() {
+                const inicio = inicioInput.value.trim();
+                const fim = fimInput.value.trim();
+                
+                if (!inicio || !fim) return;
+                
+                if (!validarCodigo(inicio) || !validarCodigo(fim)) {
+                    quantidadeSpan.textContent = '0';
+                    statusSpan.textContent = 'Inválido';
+                    statusSpan.className = 'status-invalid';
+                    mensagemSpan.textContent = 'Formato inválido. Use: XX.XX.XX.XX';
+                    btnGerar.disabled = true;
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('/calcular', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ inicio, fim })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    quantidadeSpan.textContent = data.quantidade;
+                    mensagemSpan.textContent = data.mensagem;
+                    
+                    if (data.valido) {
+                        statusSpan.textContent = 'Válido';
+                        statusSpan.className = 'status-valid';
+                        btnGerar.disabled = false;
+                    } else {
+                        statusSpan.textContent = 'Inválido';
+                        statusSpan.className = 'status-invalid';
+                        btnGerar.disabled = true;
+                    }
+                    
+                    formatarNomeArquivo();
+                    
+                } catch (error) {
+                    console.error('Erro ao calcular:', error);
+                    quantidadeSpan.textContent = '0';
+                    statusSpan.textContent = 'Erro';
+                    statusSpan.className = 'status-invalid';
+                    mensagemSpan.textContent = 'Erro ao validar códigos';
+                    btnGerar.disabled = true;
+                }
+            }
+
+            function mostrarErro(mensagem) {
+                alert('Erro: ' + mensagem);
+            }
+
+            async function gerarPDF(e) {
+                e.preventDefault();
+                
+                const inicio = inicioInput.value.trim();
+                const fim = fimInput.value.trim();
+                const endereco = enderecoInput.value.trim();
+                
+                // Validações
+                if (!inicio || !fim || !endereco) {
+                    mostrarErro('Preencha todos os campos');
+                    return;
+                }
+                
+                if (!validarCodigo(inicio) || !validarCodigo(fim)) {
+                    mostrarErro('Formato de código inválido. Use: XX.XX.XX.XX');
+                    return;
+                }
+                
+                // Mostrar loading
+                loadingOverlay.style.display = 'flex';
+                
+                try {
+                    const response = await fetch('/gerar', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ inicio, fim, endereco })
+                    });
+                    
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Erro ao gerar PDF');
+                    }
+                    
+                    // Baixar o arquivo
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `etiquetas_${inicio}_a_${fim}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    
+                } catch (error) {
+                    console.error('Erro:', error);
+                    mostrarErro(error.message);
+                } finally {
+                    // Esconder loading
+                    loadingOverlay.style.display = 'none';
+                }
+            }
+
+            // Event listeners
+            inicioInput.addEventListener('input', calcularQuantidade);
+            fimInput.addEventListener('input', calcularQuantidade);
+            enderecoInput.addEventListener('input', formatarNomeArquivo);
+            
+            // Botão calcular agora é desnecessário, mas mantemos por compatibilidade
+            document.getElementById('btn-calcular').addEventListener('click', calcularQuantidade);
+            
+            form.addEventListener('submit', gerarPDF);
+
+            // Calcular inicial
+            calcularQuantidade();
+        });
+    </script>
+</body>
+</html>

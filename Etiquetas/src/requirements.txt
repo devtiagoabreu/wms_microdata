@@ -1,0 +1,6 @@
+flet>=0.24.0
+reportlab>=4.0.0
+Flask>=3.0.0
+
+#pip install -r requirements.txt
+#pip list
