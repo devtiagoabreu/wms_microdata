@@ -7,18 +7,43 @@ from reportlab.graphics import renderPDF
 import re
 import io
 import math
+import socket
+import netifaces
+from datetime import datetime
 
 app = Flask(__name__)
 
+# Configurações da rede
+def get_network_info():
+    """Obtém informações da rede"""
+    info = {
+        'hostname': socket.gethostname(),
+        'local_ip': '127.0.0.1',
+        'network_ips': [],
+        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    }
+    
+    try:
+        # Obtém todos os IPs da rede
+        for interface in netifaces.interfaces():
+            addrs = netifaces.ifaddresses(interface)
+            if netifaces.AF_INET in addrs:
+                for addr in addrs[netifaces.AF_INET]:
+                    ip = addr['addr']
+                    if ip != '127.0.0.1':
+                        info['network_ips'].append(ip)
+                        if not ip.startswith('169.254'):  # Ignora APIPA
+                            info['local_ip'] = ip
+    except:
+        pass
+    
+    return info
+
 # Tamanho da página da impressora Argox
-PAGE_WIDTH = 99.8 * mm  # 99.8 mm
-PAGE_HEIGHT = 79.0 * mm  # 79.0 mm
-
-# Tamanho de cada etiqueta (conforme sua imagem)
-ETIQUETA_WIDTH = 90 * mm  # 90 mm de largura
-ETIQUETA_HEIGHT = 35 * mm  # 35 mm de altura
-
-# Margens para centralizar as etiquetas na página
+PAGE_WIDTH = 99.8 * mm
+PAGE_HEIGHT = 79.0 * mm
+ETIQUETA_WIDTH = 90 * mm
+ETIQUETA_HEIGHT = 35 * mm
 MARGEM_HORIZONTAL = (PAGE_WIDTH - ETIQUETA_WIDTH) / 2
 MARGEM_VERTICAL = (PAGE_HEIGHT - (2 * ETIQUETA_HEIGHT)) / 2
 
@@ -34,50 +59,41 @@ def calcular_etiquetas(inicio, fim):
     b1, s1, p1, a1 = map(int, m1.groups())
     b2, s2, p2, a2 = map(int, m2.groups())
     
-    # Verifica se a 4ª parte é 00
     if a1 != 0 or a2 != 0:
         return 0
     
-    # Verifica se a 1ª parte é igual
     if b1 != b2:
         return 0
     
-    # Calcula total
     total = 0
-    
-    # Começa do código inicial
     b, s, p, a = b1, s1, p1, a1
     
     while True:
         total += 1
         
-        # Verifica se chegou ao fim
         if b == b2 and s == s2 and p == p2 and a == a2:
             break
         
-        # Incrementa: primeiro a 3ª parte até 05
         p += 1
-        if p > 5:  # Se passar de 05, reseta para 01 e incrementa a 2ª parte
+        if p > 5:
             p = 1
             s += 1
         
-        if s > 99:  # Se passar de 99, reseta para 01 e incrementa a 1ª parte
+        if s > 99:
             s = 1
             b += 1
         
-        # Verifica se ultrapassou o limite
         if b > b2 or (b == b2 and s > s2) or (b == b2 and s == s2 and p > p2):
             return 0
     
     return total
 
 def gerar_pdf_buffer(inicio, fim, endereco_completo):
-    """Gera PDF na memória com layout EXATO: 2 etiquetas por página, uma acima da outra"""
+    """Gera PDF na memória"""
     quantidade = calcular_etiquetas(inicio, fim)
     if quantidade <= 0:
         return None
     
-    # Extrai partes do código inicial
     padrao = r'(\d{2})\.(\d{2})\.(\d{2})\.(\d{2})'
     match = re.match(padrao, inicio)
     if not match:
@@ -85,62 +101,43 @@ def gerar_pdf_buffer(inicio, fim, endereco_completo):
     
     b, s, p, a = map(int, match.groups())
     
-    # Extrai partes do código final para validação
     match_fim = re.match(padrao, fim)
     if not match_fim:
         return None
     
     b_fim, s_fim, p_fim, a_fim = map(int, match_fim.groups())
     
-    # Criar buffer na memória
     buffer = io.BytesIO()
-    
-    # Criar canvas com tamanho específico da impressora Argox
     c = canvas.Canvas(buffer, pagesize=(PAGE_WIDTH, PAGE_HEIGHT))
-    
-    # 2 etiquetas por página (uma acima da outra)
     etiquetas_por_pagina = 2
-    
     etiqueta_atual = 0
-    pagina = 1
     
     while etiqueta_atual < quantidade:
-        # Se não for a primeira etiqueta e preencheu a página, nova página
         if etiqueta_atual > 0 and etiqueta_atual % etiquetas_por_pagina == 0:
             c.showPage()
-            pagina += 1
         
-        # Determinar posição na página (0 = superior, 1 = inferior)
         posicao_na_pagina = etiqueta_atual % etiquetas_por_pagina
         
-        # Calcular posição Y
-        if posicao_na_pagina == 0:  # Etiqueta SUPERIOR
+        if posicao_na_pagina == 0:
             y_pos = PAGE_HEIGHT - MARGEM_VERTICAL - ETIQUETA_HEIGHT
-        else:  # Etiqueta INFERIOR
+        else:
             y_pos = MARGEM_VERTICAL
         
-        # Posição X (centralizada)
         x_pos = MARGEM_HORIZONTAL
-        
-        # Código atual
         codigo = f"{b:02d}.{s:02d}.{p:02d}.{a:02d}"
         
-        # **BORDA DA ETIQUETA - FINA**
-        c.setStrokeColorRGB(0, 0, 0)  # Preto
-        c.setLineWidth(0.5)  # Fina
+        # Borda da etiqueta
+        c.setStrokeColorRGB(0, 0, 0)
+        c.setLineWidth(0.5)
         c.rect(x_pos, y_pos, ETIQUETA_WIDTH, ETIQUETA_HEIGHT, stroke=1, fill=0)
         
-        # **CÓDIGO DE BARRAS - CENTRALIZADO E MAIOR (80% DA LARGURA)**
+        # Código de barras
         try:
-            # Altura do código de barras: ~25% da altura da etiqueta
             barcode_height = ETIQUETA_HEIGHT * 0.25
-            barcode_width = ETIQUETA_WIDTH * 0.8  # 80% da largura como solicitado
-            
-            # Posição do código de barras CENTRALIZADA
+            barcode_width = ETIQUETA_WIDTH * 0.8
             barcode_x = x_pos + (ETIQUETA_WIDTH - barcode_width) / 2
             barcode_y = y_pos + ETIQUETA_HEIGHT - barcode_height - 3
             
-            # Criar código de barras Code128
             barcode = code128.Code128(
                 codigo,
                 barWidth=0.25,
@@ -148,74 +145,51 @@ def gerar_pdf_buffer(inicio, fim, endereco_completo):
                 humanReadable=False
             )
             
-            # Calcular largura real do código de barras
             barcode_real_width = barcode.width
             scale = barcode_width / barcode_real_width
             
-            # Salvar estado, aplicar escala e desenhar
             c.saveState()
             c.translate(barcode_x, barcode_y)
-            c.scale(scale, 1)  # Apenas escala horizontal
+            c.scale(scale, 1)
             barcode.drawOn(c, 0, 0)
             c.restoreState()
             
         except Exception as e:
-            print(f"Erro ao gerar código de barras: {e}")
-            # Fallback: área do código de barras
-            c.setStrokeColorRGB(0.8, 0.8, 0.8)
-            c.setLineWidth(0.5)
-            c.rect(barcode_x, barcode_y, barcode_width, barcode_height, stroke=1, fill=0)
+            print(f"Erro código de barras: {e}")
         
-        # **TEXTO DO CÓDIGO - MAIOR E CENTRALIZADO**
-        c.setFont("Helvetica-Bold", 16)  # AUMENTADO para 16pt
+        # Código
+        c.setFont("Helvetica-Bold", 16)
         c.setFillColorRGB(0, 0, 0)
-        
-        # Calcular largura do texto para centralizar
         texto_largura = c.stringWidth(codigo, "Helvetica-Bold", 16)
         codigo_x = x_pos + (ETIQUETA_WIDTH - texto_largura) / 2
-        codigo_y = y_pos + ETIQUETA_HEIGHT - barcode_height - 18  # Ajustado
-        
+        codigo_y = y_pos + ETIQUETA_HEIGHT - barcode_height - 18
         c.drawString(codigo_x, codigo_y, codigo)
         
-        # **ENDEREÇO FIXO - EM UMA LINHA E CENTRALIZADO**
-        c.setFont("Helvetica", 12)  # AUMENTADO para 12pt para caber em uma linha
-        
-        # Verificar se o endereço cabe em uma linha
+        # Endereço
+        c.setFont("Helvetica", 12)
         endereco_texto = endereco_completo
         texto_largura_endereco = c.stringWidth(endereco_texto, "Helvetica", 12)
         
-        # Se for muito longo, tentar reduzir um pouco
         if texto_largura_endereco > ETIQUETA_WIDTH * 0.9:
             c.setFont("Helvetica", 11)
             texto_largura_endereco = c.stringWidth(endereco_texto, "Helvetica", 11)
         
-        # Calcular posição X para centralizar
         endereco_x = x_pos + (ETIQUETA_WIDTH - texto_largura_endereco) / 2
-        
-        # Posição Y para o endereço (centro da área restante)
         altura_restante = ETIQUETA_HEIGHT - barcode_height - 25
         endereco_y = y_pos + (altura_restante / 2) + 5
-        
-        # Desenhar endereço em UMA LINHA
         c.drawString(endereco_x, endereco_y, endereco_texto)
         
-        # **VERIFICA SE CHEGOU AO FIM**
         if b == b_fim and s == s_fim and p == p_fim:
             break
         
-        # **INCREMENTA COM AS REGRAS CORRETAS:**
-        # 1. Incrementa a 3ª parte
         p += 1
-        
-        # 2. Se a 3ª parte passar de 05, reseta para 01 e incrementa a 2ª parte
         if p > 5:
             p = 1
             s += 1
-            
-            # 3. Se a 2ª parte passar de 99, reseta para 01 e incrementa a 1ª parte
-            if s > 99:
-                s = 1
-                b += 1
+        
+        if s > 99:
+            s = 1
+            b += 1
         
         etiqueta_atual += 1
     
@@ -225,7 +199,16 @@ def gerar_pdf_buffer(inicio, fim, endereco_completo):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    network_info = get_network_info()
+    return render_template('index.html', 
+                         network_info=network_info,
+                         local_ip=network_info['local_ip'])
+
+@app.route('/network')
+def network_info():
+    """Página com informações da rede"""
+    info = get_network_info()
+    return render_template('network_info.html', info=info)
 
 @app.route('/gerar', methods=['POST'])
 def gerar_pdf():
@@ -238,7 +221,6 @@ def gerar_pdf():
         if not inicio or not fim or not endereco:
             return jsonify({'error': 'Preencha todos os campos'}), 400
         
-        # Validação básica
         padrao = r'(\d{2})\.(\d{2})\.(\d{2})\.(\d{2})'
         if not re.match(padrao, inicio) or not re.match(padrao, fim):
             return jsonify({'error': 'Formato inválido. Use: XX.XX.XX.XX'}), 400
@@ -269,7 +251,6 @@ def calcular():
     inicio = data.get('inicio', '').strip()
     fim = data.get('fim', '').strip()
     
-    # Validação do formato
     padrao = r'(\d{2})\.(\d{2})\.(\d{2})\.(\d{2})'
     m1 = re.match(padrao, inicio)
     m2 = re.match(padrao, fim)
@@ -284,7 +265,6 @@ def calcular():
     b1, s1, p1, a1 = map(int, m1.groups())
     b2, s2, p2, a2 = map(int, m2.groups())
     
-    # Verifica a 4ª parte
     if a1 != 0 or a2 != 0:
         return jsonify({
             'quantidade': 0,
@@ -292,7 +272,6 @@ def calcular():
             'mensagem': 'A 4ª parte deve ser sempre 00'
         })
     
-    # Verifica ordem
     if b1 > b2 or (b1 == b2 and s1 > s2) or (b1 == b2 and s1 == s2 and p1 > p2):
         return jsonify({
             'quantidade': 0,
@@ -300,7 +279,6 @@ def calcular():
             'mensagem': 'Código final deve ser maior que o inicial'
         })
     
-    # Calcula quantidade
     quantidade = calcular_etiquetas(inicio, fim)
     valido = quantidade > 0
     
@@ -311,7 +289,6 @@ def calcular():
         mensagem += "3. 2ª parte vai de 01 a 99\n"
         mensagem += "4. Apenas 3ª e 2ª partes podem variar"
     else:
-        # Calcular quantas páginas serão necessárias (2 etiquetas por página)
         paginas = math.ceil(quantidade / 2)
         mensagem = f"{quantidade} etiquetas em {paginas} {'página' if paginas == 1 else 'páginas'} (2 por página)"
     
@@ -322,4 +299,35 @@ def calcular():
     })
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    # Configurações para rede
+    network_info = get_network_info()
+    local_ip = network_info['local_ip']
+    port = 5000
+    
+    print("=" * 60)
+    print("🚀 GERADOR DE ETIQUETAS - SERVIDOR DE REDE")
+    print("=" * 60)
+    print(f"📛 Hostname: {network_info['hostname']}")
+    print(f"📍 IP Local: 127.0.0.1")
+    print(f"🌐 IP da Rede: {local_ip}")
+    print(f"🔌 Porta: {port}")
+    print("=" * 60)
+    print(f"🔗 URL Local: http://127.0.0.1:{port}")
+    print(f"🌍 URL da Rede: http://{local_ip}:{port}")
+    print("=" * 60)
+    
+    if network_info['network_ips']:
+        print("📡 IPs disponíveis na rede:")
+        for ip in network_info['network_ips']:
+            print(f"   → http://{ip}:{port}")
+    print("=" * 60)
+    print("📢 Acesse de qualquer computador na rede local!")
+    print("=" * 60)
+    
+    # Rodar servidor
+    app.run(
+        host='0.0.0.0',  # Aceita conexões de qualquer IP
+        port=port,
+        debug=True,
+        threaded=True  # Permite múltiplas conexões simultâneas
+    )
