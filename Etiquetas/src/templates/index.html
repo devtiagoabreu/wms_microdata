@@ -3,86 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador Inteligente de Etiquetas</title>
+    <title>Gerador de Etiquetas - Regras Corrigidas</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        .preview-container {
-            background: white;
-            width: 99.8mm;
-            height: 80mm;
-            border: 1px solid #ddd;
-            margin: 20px auto;
-            position: relative;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        
-        .etiqueta {
-            position: absolute;
-            width: 90mm;
-            height: 35mm;
-            border: 1px dashed #ccc;
-            background: #f9f9f9;
-        }
-        
-        .etiqueta-superior {
-            top: 12.5mm;
-            left: 4.9mm;
-        }
-        
-        .etiqueta-inferior {
-            top: 47.5mm;
-            left: 4.9mm;
-        }
-        
-        .barcode-preview {
-            position: absolute;
-            top: 5mm;
-            left: 5mm;
-            width: 80mm;
-            height: 14mm;
-            background: repeating-linear-gradient(
-                90deg,
-                #000,
-                #000 1mm,
-                transparent 1mm,
-                transparent 2mm
-            );
-        }
-        
-        .code-preview {
-            position: absolute;
-            top: 20mm;
-            left: 0;
-            width: 100%;
-            text-align: center;
-            font-weight: bold;
-            font-size: 14px;
-        }
-        
-        .address-preview {
-            position: absolute;
-            top: 25mm;
-            left: 0;
-            width: 100%;
-            text-align: center;
-            font-size: 10px;
-            line-height: 12px;
-        }
-        
-        .preview-label {
-            text-align: center;
-            color: #666;
-            margin-top: 10px;
-            font-size: 0.9em;
-        }
-    </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1><i class="fas fa-barcode"></i> Gerador Inteligente de Etiquetas</h1>
-            <p class="subtitle">Incremento automático: 01-99 na 3ª parte, depois 2ª parte</p>
+            <h1><i class="fas fa-barcode"></i> Gerador de Etiquetas</h1>
+            <p class="subtitle">Regras: 3ª parte (01-05) → 2ª parte (01-99) → 1ª parte</p>
         </header>
 
         <main>
@@ -99,7 +28,7 @@
                                    placeholder="ex: 03.49.01.00" 
                                    value="03.49.01.00" required
                                    pattern="\d{2}\.\d{2}\.\d{2}\.\d{2}">
-                            <small>Formato: XX.XX.XX.XX</small>
+                            <small>Formato: XX.XX.XX.XX (4ª parte sempre 00)</small>
                         </div>
 
                         <div class="form-group">
@@ -110,7 +39,7 @@
                                    placeholder="ex: 03.50.05.00" 
                                    value="03.50.05.00" required
                                    pattern="\d{2}\.\d{2}\.\d{2}\.\d{2}">
-                            <small>Formato: XX.XX.XX.XX</small>
+                            <small>Formato: XX.XX.XX.XX (4ª parte sempre 00)</small>
                         </div>
                     </div>
 
@@ -122,20 +51,6 @@
                                   placeholder="RUA | PRÉDIO | NÍVEL | APARTAMENTO" required>RUA | PRÉDIO | NÍVEL | APARTAMENTO</textarea>
                     </div>
 
-                    <div class="preview-container">
-                        <div class="etiqueta etiqueta-superior">
-                            <div class="barcode-preview"></div>
-                            <div class="code-preview" id="preview-code1">03.49.01.00</div>
-                            <div class="address-preview" id="preview-address1">RUA | PRÉDIO | NÍVEL | APARTAMENTO</div>
-                        </div>
-                        <div class="etiqueta etiqueta-inferior">
-                            <div class="barcode-preview"></div>
-                            <div class="code-preview" id="preview-code2">03.49.02.00</div>
-                            <div class="address-preview" id="preview-address2">RUA | PRÉDIO | NÍVEL | APARTAMENTO</div>
-                        </div>
-                    </div>
-                    <div class="preview-label">Prévia: 2 etiquetas por página (99.8 × 80.0 mm)</div>
-
                     <div class="info-box">
                         <h3><i class="fas fa-info-circle"></i> Resumo</h3>
                         <div class="info-grid">
@@ -145,16 +60,16 @@
                             </div>
                             <div>
                                 <p><strong>Status:</strong> <span id="status" class="status-valid">Válido</span></p>
-                                <p><strong>Layout:</strong> 2 etiquetas/página</p>
+                                <p><strong>4ª parte:</strong> <span id="quarta-parte">00 (fixo)</span></p>
                             </div>
                         </div>
-                        <p><strong>Sequência:</strong> <span id="sequencia">03.49.01.00 até 03.50.05.00</span></p>
+                        <p><strong>Sequência:</strong> <span id="sequencia-exemplo"></span></p>
                         <p><strong>Arquivo:</strong> <span id="nome-arquivo">etiquetas_03.49.01.00_a_03.50.05.00.pdf</span></p>
                     </div>
 
                     <div class="buttons">
                         <button type="button" id="btn-testar" class="btn btn-secondary">
-                            <i class="fas fa-vial"></i> Testar Sequência
+                            <i class="fas fa-vial"></i> Ver Sequência
                         </button>
                         <button type="submit" id="btn-gerar" class="btn btn-primary">
                             <i class="fas fa-file-pdf"></i> Gerar PDF
@@ -164,90 +79,119 @@
             </div>
 
             <div class="card">
-                <h2><i class="fas fa-brain"></i> Como Funciona o Incremento</h2>
-                <div class="increment-examples">
-                    <div class="example">
-                        <h4>Exemplo 1: <code>03.49.01.00</code> até <code>03.49.05.00</code></h4>
-                        <div class="sequence">
-                            <span>03.49.01.00</span> →
-                            <span>03.49.02.00</span> →
-                            <span>03.49.03.00</span> →
-                            <span>03.49.04.00</span> →
-                            <span>03.49.05.00</span>
+                <h2><i class="fas fa-sitemap"></i> Regras de Incremento</h2>
+                <div class="rules-diagram">
+                    <div class="rule-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>4ª Parte (FIXA)</h4>
+                            <p class="fixed-part">Sempre <strong>00</strong></p>
+                            <p>Nunca muda</p>
                         </div>
-                        <p><em>Resultado:</em> 5 etiquetas (apenas 3ª parte incrementa)</p>
                     </div>
                     
-                    <div class="example">
-                        <h4>Exemplo 2: <code>03.49.01.00</code> até <code>03.50.05.00</code></h4>
-                        <div class="sequence">
-                            <span>03.49.01.00</span> → ... → <span>03.49.99.00</span> →
-                            <span>03.50.01.00</span> → ... → <span>03.50.05.00</span>
-                        </div>
-                        <p><em>Resultado:</em> 104 etiquetas (3ª parte vai até 99, depois incrementa 2ª parte)</p>
+                    <div class="rule-arrow">
+                        <i class="fas fa-arrow-down"></i>
                     </div>
                     
-                    <div class="example">
-                        <h4>Exemplo 3: <code>05.28.01.00</code> até <code>05.28.05.00</code> (do PDF)</h4>
-                        <div class="sequence">
-                            <span>05.28.01.00</span> →
-                            <span>05.28.02.00</span> →
-                            <span>05.28.03.00</span> →
-                            <span>05.28.04.00</span> →
-                            <span>05.28.05.00</span>
+                    <div class="rule-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>3ª Parte (VARIA de 01 a 05)</h4>
+                            <p class="variable-part">Ex: <strong>01</strong> → <strong>02</strong> → ... → <strong>05</strong></p>
+                            <p>Quando chega em 05, reseta para 01</p>
                         </div>
-                        <p><em>Resultado:</em> 5 etiquetas em 3 páginas (2+2+1)</p>
+                    </div>
+                    
+                    <div class="rule-arrow">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+                    
+                    <div class="rule-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>2ª Parte (VARIA de 01 a 99)</h4>
+                            <p class="variable-part">Ex: <strong>49</strong> → <strong>50</strong> → ... → <strong>99</strong></p>
+                            <p>Quando chega em 99, reseta para 01</p>
+                        </div>
+                    </div>
+                    
+                    <div class="rule-arrow">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+                    
+                    <div class="rule-step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h4>1ª Parte (FIXA ou VARIA)</h4>
+                            <p class="fixed-part">Ex: <strong>03</strong> (normalmente fixo)</p>
+                            <p>Só incrementa se 2ª parte passar de 99</p>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="card">
-                <h2><i class="fas fa-ruler-combined"></i> Especificações Técnicas</h2>
-                <div class="specs-grid">
-                    <div class="spec">
-                        <div class="spec-icon">
-                            <i class="fas fa-file"></i>
-                        </div>
-                        <div class="spec-content">
-                            <h4>Tamanho da Página</h4>
-                            <p><strong>99,8 mm</strong> × <strong>80,0 mm</strong></p>
-                        </div>
-                    </div>
-                    <div class="spec">
-                        <div class="spec-icon">
-                            <i class="fas fa-tag"></i>
-                        </div>
-                        <div class="spec-content">
-                            <h4>Tamanho da Etiqueta</h4>
-                            <p><strong>90 mm</strong> × <strong>35 mm</strong></p>
+                <h2><i class="fas fa-calculator"></i> Exemplos de Cálculo</h2>
+                <div class="calculation-examples">
+                    <div class="calculation">
+                        <h4>Exemplo 1: <code>03.49.01.00</code> até <code>03.49.05.00</code></h4>
+                        <div class="calc-steps">
+                            <p>1. 3ª parte: 01 → 02 → 03 → 04 → 05</p>
+                            <p>2ª parte permanece 49</p>
+                            <p><strong>Total: 5 etiquetas</strong></p>
                         </div>
                     </div>
-                    <div class="spec">
-                        <div class="spec-icon">
-                            <i class="fas fa-layer-group"></i>
-                        </div>
-                        <div class="spec-content">
-                            <h4>Layout</h4>
-                            <p><strong>2 etiquetas</strong> por página</p>
-                            <p>Uma acima da outra</p>
+                    
+                    <div class="calculation">
+                        <h4>Exemplo 2: <code>03.49.01.00</code> até <code>03.50.05.00</code></h4>
+                        <div class="calc-steps">
+                            <p>1. 03.49.01.00 → 03.49.02.00 → 03.49.03.00 → 03.49.04.00 → 03.49.05.00</p>
+                            <p>2. 03.50.01.00 → 03.50.02.00 → 03.50.03.00 → 03.50.04.00 → 03.50.05.00</p>
+                            <p><strong>Total: 10 etiquetas</strong></p>
                         </div>
                     </div>
-                    <div class="spec">
-                        <div class="spec-icon">
-                            <i class="fas fa-barcode"></i>
+                    
+                    <div class="calculation">
+                        <h4>Exemplo 3: <code>05.28.01.00</code> até <code>05.28.05.00</code> (PDF original)</h4>
+                        <div class="calc-steps">
+                            <p>1. 05.28.01.00 → 05.28.02.00 (página 1)</p>
+                            <p>2. 05.28.03.00 → 05.28.04.00 (página 2)</p>
+                            <p>3. 05.28.05.00 (página 3 - única etiqueta)</p>
+                            <p><strong>Total: 5 etiquetas em 3 páginas</strong></p>
                         </div>
-                        <div class="spec-content">
-                            <h4>Código de Barras</h4>
-                            <p><strong>Code128</strong></p>
-                            <p>80% largura × 40% altura</p>
-                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2><i class="fas fa-question-circle"></i> FAQ - Perguntas Frequentes</h2>
+                <div class="faq">
+                    <div class="faq-item">
+                        <h4>Por que a 3ª parte só vai até 05?</h4>
+                        <p>É a regra do sistema de endereçamento. Cada "bloco" tem 5 posições (01 a 05).</p>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <h4>E se eu quiser gerar mais de 5 etiquetas seguidas?</h4>
+                        <p>O sistema automaticamente incrementa a 2ª parte. Ex: 03.49.05.00 → 03.50.01.00</p>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <h4>A 4ª parte pode ser diferente de 00?</h4>
+                        <p>Não. No seu sistema, a 4ª parte é sempre 00.</p>
+                    </div>
+                    
+                    <div class="faq-item">
+                        <h4>Quantas páginas serão geradas?</h4>
+                        <p>Cada página tem 2 etiquetas. Ex: 10 etiquetas = 5 páginas.</p>
                     </div>
                 </div>
             </div>
         </main>
 
         <footer>
-            <p>Gerador de Etiquetas &copy; 2024 | Layout exato conforme especificado</p>
+            <p>Gerador de Etiquetas &copy; 2024 | Regras corrigidas conforme especificado</p>
         </footer>
     </div>
 
@@ -267,54 +211,28 @@
             const quantidadeSpan = document.getElementById('quantidade');
             const paginasSpan = document.getElementById('paginas');
             const statusSpan = document.getElementById('status');
-            const sequenciaSpan = document.getElementById('sequencia');
+            const sequenciaExemploSpan = document.getElementById('sequencia-exemplo');
             const nomeArquivoSpan = document.getElementById('nome-arquivo');
             const btnGerar = document.getElementById('btn-gerar');
             const btnTestar = document.getElementById('btn-testar');
             const loadingOverlay = document.getElementById('loading');
-            
-            // Elementos da prévia
-            const previewCode1 = document.getElementById('preview-code1');
-            const previewCode2 = document.getElementById('preview-code2');
-            const previewAddress1 = document.getElementById('preview-address1');
-            const previewAddress2 = document.getElementById('preview-address2');
-
-            function atualizarPrevia() {
-                previewCode1.textContent = inicioInput.value;
-                previewCode2.textContent = calcularProximoCodigo(inicioInput.value);
-                previewAddress1.textContent = enderecoInput.value;
-                previewAddress2.textContent = enderecoInput.value;
-            }
-
-            function calcularProximoCodigo(codigo) {
-                const padrao = /(\d{2})\.(\d{2})\.(\d{2})\.(\d{2})/;
-                const match = codigo.match(padrao);
-                
-                if (!match) return codigo;
-                
-                let [_, b, s, p, a] = match.map(Number);
-                
-                p += 1;
-                if (p > 99) {
-                    p = 1;
-                    s += 1;
-                }
-                
-                return `${b.toString().padStart(2, '0')}.${s.toString().padStart(2, '0')}.${p.toString().padStart(2, '0')}.${a.toString().padStart(2, '0')}`;
-            }
 
             function formatarNomeArquivo() {
                 const inicio = inicioInput.value.trim();
                 const fim = fimInput.value.trim();
                 if (inicio && fim) {
                     nomeArquivoSpan.textContent = `etiquetas_${inicio}_a_${fim}.pdf`;
-                    sequenciaSpan.textContent = `${inicio} até ${fim}`;
+                    sequenciaExemploSpan.textContent = `${inicio} → ... → ${fim}`;
                 }
             }
 
             function validarCodigo(codigo) {
                 const padrao = /^\d{2}\.\d{2}\.\d{2}\.\d{2}$/;
-                return padrao.test(codigo);
+                if (!padrao.test(codigo)) return false;
+                
+                // Verifica se a 4ª parte é 00
+                const partes = codigo.split('.');
+                return partes[3] === '00';
             }
 
             async function calcularQuantidade() {
@@ -328,6 +246,7 @@
                     paginasSpan.textContent = '0';
                     statusSpan.textContent = 'Inválido';
                     statusSpan.className = 'status-invalid';
+                    sequenciaExemploSpan.textContent = '4ª parte deve ser 00';
                     btnGerar.disabled = true;
                     return;
                 }
@@ -357,7 +276,6 @@
                     }
                     
                     formatarNomeArquivo();
-                    atualizarPrevia();
                     
                 } catch (error) {
                     console.error('Erro ao calcular:', error);
@@ -374,7 +292,7 @@
                 const fim = fimInput.value.trim();
                 
                 if (!inicio || !fim || !validarCodigo(inicio) || !validarCodigo(fim)) {
-                    alert('Digite códigos válidos para testar!');
+                    alert('Digite códigos válidos! A 4ª parte deve ser 00.');
                     return;
                 }
                 
@@ -387,17 +305,15 @@
                         return;
                     }
                     
-                    const primeiros = data.sequencia.slice(0, 5);
-                    const ultimos = data.sequencia.slice(-5);
+                    const primeiros = data.sequencia.slice(0, 3);
+                    const ultimos = data.sequencia.slice(-3);
                     
                     let mensagem = `Total: ${data.total} etiquetas\n\n`;
-                    mensagem += `Primeiros: ${primeiros.join(' → ')}\n`;
                     
-                    if (data.total > 10) {
-                        mensagem += `...\n`;
-                        mensagem += `Últimos: ${ultimos.join(' → ')}`;
+                    if (data.total <= 6) {
+                        mensagem += `Sequência completa:\n${data.sequencia.join(' → ')}`;
                     } else {
-                        mensagem += `Sequência completa: ${data.sequencia.join(' → ')}`;
+                        mensagem += `Sequência:\n${primeiros.join(' → ')} → ... → ${ultimos.join(' → ')}`;
                     }
                     
                     alert(mensagem);
@@ -426,7 +342,7 @@
                 }
                 
                 if (!validarCodigo(inicio) || !validarCodigo(fim)) {
-                    mostrarErro('Formato de código inválido. Use: XX.XX.XX.XX');
+                    mostrarErro('Formato inválido. Use: XX.XX.XX.00 (4ª parte sempre 00)');
                     return;
                 }
                 
@@ -470,17 +386,13 @@
             // Event listeners
             inicioInput.addEventListener('input', calcularQuantidade);
             fimInput.addEventListener('input', calcularQuantidade);
-            enderecoInput.addEventListener('input', function() {
-                formatarNomeArquivo();
-                atualizarPrevia();
-            });
+            enderecoInput.addEventListener('input', formatarNomeArquivo);
             
             btnTestar.addEventListener('click', testarSequencia);
             form.addEventListener('submit', gerarPDF);
 
             // Calcular inicial
             calcularQuantidade();
-            atualizarPrevia();
         });
     </script>
 </body>

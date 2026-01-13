@@ -19,7 +19,7 @@ ETIQUETA_WIDTH = 90 * mm
 ETIQUETA_HEIGHT = 35 * mm
 
 def calcular_etiquetas(inicio, fim):
-    """Calcula a quantidade de etiquetas entre dois códigos COM INTELIGÊNCIA"""
+    """Calcula a quantidade de etiquetas entre dois códigos"""
     padrao = r'(\d{2})\.(\d{2})\.(\d{2})\.(\d{2})'
     m1 = re.match(padrao, inicio)
     m2 = re.match(padrao, fim)
@@ -30,11 +30,15 @@ def calcular_etiquetas(inicio, fim):
     b1, s1, p1, a1 = map(int, m1.groups())
     b2, s2, p2, a2 = map(int, m2.groups())
     
-    # Verifica se a 1ª e 4ª partes são iguais
-    if b1 != b2 or a1 != a2:
+    # Verifica se a 4ª parte é 00
+    if a1 != 0 or a2 != 0:
         return 0
     
-    # Calcula total considerando que a 3ª parte vai até 99
+    # Verifica se a 1ª parte é igual
+    if b1 != b2:
+        return 0
+    
+    # Calcula total
     total = 0
     
     # Começa do código inicial
@@ -47,15 +51,19 @@ def calcular_etiquetas(inicio, fim):
         if b == b2 and s == s2 and p == p2 and a == a2:
             break
         
-        # Incrementa
+        # Incrementa: primeiro a 3ª parte até 05
         p += 1
-        if p > 99:  # Se passar de 99, reseta e incrementa a 2ª parte
+        if p > 5:  # Se passar de 05, reseta para 01 e incrementa a 2ª parte
             p = 1
             s += 1
         
-        if s > 99:  # Se passar de 99, reseta e incrementa a 1ª parte
+        if s > 99:  # Se passar de 99, reseta para 01 e incrementa a 1ª parte
             s = 1
             b += 1
+        
+        # Verifica se ultrapassou o limite
+        if b > b2 or (b == b2 and s > s2) or (b == b2 and s == s2 and p > p2):
+            return 0
     
     return total
 
@@ -73,6 +81,13 @@ def gerar_pdf_buffer(inicio, fim, endereco_completo):
     
     b, s, p, a = map(int, match.groups())
     
+    # Extrai partes do código final para validação
+    match_fim = re.match(padrao, fim)
+    if not match_fim:
+        return None
+    
+    b_fim, s_fim, p_fim, a_fim = map(int, match_fim.groups())
+    
     # Criar buffer na memória
     buffer = io.BytesIO()
     
@@ -81,7 +96,6 @@ def gerar_pdf_buffer(inicio, fim, endereco_completo):
     
     # Calcular número de páginas (2 etiquetas por página)
     etiquetas_por_pagina = 2
-    total_paginas = math.ceil(quantidade / etiquetas_por_pagina)
     
     # Margens para centralizar verticalmente
     espacamento_vertical = (PAGE_HEIGHT - (2 * ETIQUETA_HEIGHT))
@@ -123,7 +137,7 @@ def gerar_pdf_buffer(inicio, fim, endereco_completo):
             # Criar código de barras com largura ajustada
             barcode = code128.Code128(
                 codigo,
-                barWidth=0.35,  # Ajustado para largura completa
+                barWidth=0.35,
                 barHeight=barcode_height - 10,
                 humanReadable=False
             )
@@ -187,15 +201,23 @@ def gerar_pdf_buffer(inicio, fim, endereco_completo):
             linha_y = inicio_endereco_y - (i * 12)
             c.drawString(linha_x, linha_y, texto)
         
-        # Incrementa o código para próxima etiqueta
+        # **VERIFICA SE CHEGOU AO FIM**
+        if b == b_fim and s == s_fim and p == p_fim:
+            break
+        
+        # **INCREMENTA COM AS REGRAS CORRETAS:**
+        # 1. Incrementa a 3ª parte
         p += 1
-        if p > 99:  # Se passar de 99, reseta e incrementa a 2ª parte
+        
+        # 2. Se a 3ª parte passar de 05, reseta para 01 e incrementa a 2ª parte
+        if p > 5:
             p = 1
             s += 1
-        
-        if s > 99:  # Se passar de 99, reseta e incrementa a 1ª parte
-            s = 1
-            b += 1
+            
+            # 3. Se a 2ª parte passar de 99, reseta para 01 e incrementa a 1ª parte
+            if s > 99:
+                s = 1
+                b += 1
         
         etiqueta_atual += 1
     
@@ -218,9 +240,14 @@ def gerar_pdf():
         if not inicio or not fim or not endereco:
             return jsonify({'error': 'Preencha todos os campos'}), 400
         
+        # Validação básica
+        padrao = r'(\d{2})\.(\d{2})\.(\d{2})\.(\d{2})'
+        if not re.match(padrao, inicio) or not re.match(padrao, fim):
+            return jsonify({'error': 'Formato inválido. Use: XX.XX.XX.XX'}), 400
+        
         quantidade = calcular_etiquetas(inicio, fim)
         if quantidade <= 0:
-            return jsonify({'error': 'Intervalo inválido. Verifique os códigos.'}), 400
+            return jsonify({'error': 'Intervalo inválido ou regras não atendidas'}), 400
         
         buffer = gerar_pdf_buffer(inicio, fim, endereco)
         if not buffer:
@@ -244,33 +271,54 @@ def calcular():
     inicio = data.get('inicio', '').strip()
     fim = data.get('fim', '').strip()
     
-    quantidade = calcular_etiquetas(inicio, fim)
+    # Validação do formato
+    padrao = r'(\d{2})\.(\d{2})\.(\d{2})\.(\d{2})'
+    m1 = re.match(padrao, inicio)
+    m2 = re.match(padrao, fim)
     
-    if quantidade <= 0:
-        # Extrair partes para análise
-        padrao = r'(\d{2})\.(\d{2})\.(\d{2})\.(\d{2})'
-        m1 = re.match(padrao, inicio)
-        m2 = re.match(padrao, fim)
-        
-        if m1 and m2:
-            b1, s1, p1, a1 = map(int, m1.groups())
-            b2, s2, p2, a2 = map(int, m2.groups())
-            
-            if a1 != a2 or b1 != b2:
-                mensagem = "A 1ª e 4ª partes devem ser iguais!"
-            elif s1 > s2 or (s1 == s2 and p1 > p2):
-                mensagem = "Código final deve ser maior que o inicial!"
-            else:
-                mensagem = "Código inválido!"
-        else:
-            mensagem = "Formato inválido! Use: XX.XX.XX.XX"
+    if not m1 or not m2:
+        return jsonify({
+            'quantidade': 0,
+            'valido': False,
+            'mensagem': 'Formato inválido! Use: XX.XX.XX.XX'
+        })
+    
+    b1, s1, p1, a1 = map(int, m1.groups())
+    b2, s2, p2, a2 = map(int, m2.groups())
+    
+    # Verifica a 4ª parte
+    if a1 != 0 or a2 != 0:
+        return jsonify({
+            'quantidade': 0,
+            'valido': False,
+            'mensagem': 'A 4ª parte deve ser sempre 00'
+        })
+    
+    # Verifica ordem
+    if b1 > b2 or (b1 == b2 and s1 > s2) or (b1 == b2 and s1 == s2 and p1 > p2):
+        return jsonify({
+            'quantidade': 0,
+            'valido': False,
+            'mensagem': 'Código final deve ser maior que o inicial'
+        })
+    
+    # Calcula quantidade
+    quantidade = calcular_etiquetas(inicio, fim)
+    valido = quantidade > 0
+    
+    if not valido:
+        mensagem = "Intervalo inválido. Regras:\n"
+        mensagem += "1. 4ª parte = 00 (fixo)\n"
+        mensagem += "2. 3ª parte vai de 01 a 05\n"
+        mensagem += "3. 2ª parte vai de 01 a 99\n"
+        mensagem += "4. Apenas 3ª e 2ª partes podem variar"
     else:
         paginas = math.ceil(quantidade / 2)
         mensagem = f"{quantidade} etiquetas ({paginas} {'página' if paginas == 1 else 'páginas'})"
     
     return jsonify({
         'quantidade': quantidade,
-        'valido': quantidade > 0,
+        'valido': valido,
         'mensagem': mensagem
     })
 
@@ -287,23 +335,28 @@ def mostrar_sequencia(inicio, fim):
         return jsonify({'error': 'Formato inválido'})
     
     b, s, p, a = map(int, m1.groups())
-    b2, s2, p2, a2 = map(int, m2.groups())
+    b_fim, s_fim, p_fim, a_fim = map(int, m2.groups())
     
     while True:
         codigo = f"{b:02d}.{s:02d}.{p:02d}.{a:02d}"
         sequencia.append(codigo)
         
-        if b == b2 and s == s2 and p == p2 and a == a2:
+        if b == b_fim and s == s_fim and p == p_fim:
             break
         
+        # Incrementa com as regras
         p += 1
-        if p > 99:
+        if p > 5:
             p = 1
             s += 1
         
         if s > 99:
             s = 1
             b += 1
+        
+        # Verifica limites
+        if b > b_fim or (b == b_fim and s > s_fim) or (b == b_fim and s == s_fim and p > p_fim):
+            break
     
     return jsonify({
         'sequencia': sequencia,
