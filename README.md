@@ -3,6 +3,8 @@
 
 Sistema de geração de etiquetas de endereçamento integrado ao ERP Microdata Sistemas para a Importadora DGB COMEX.
 
+![Tela do app](image.png)
+
 ## 📋 Visão Geral
 
 Este módulo foi desenvolvido para suprir a falta de um módulo WMS no sistema ERP da Microdata Sistemas, permitindo a geração automatizada de etiquetas de endereçamento para armazenamento com integração direta ao sistema existente.
