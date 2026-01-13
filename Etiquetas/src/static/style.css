@@ -431,3 +431,117 @@ code {
 .fa-exclamation-triangle {
     color: #e74c3c;
 }
+
+/* Mantenha o CSS anterior e adicione: */
+
+.increment-examples {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 25px;
+    margin-top: 20px;
+}
+
+.example {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 20px;
+    border-radius: 10px;
+    border-left: 4px solid #667eea;
+}
+
+.example h4 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+}
+
+.sequence {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 15px 0;
+    align-items: center;
+}
+
+.sequence span {
+    background: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    border: 1px solid #dee2e6;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+.sequence span:not(:last-child):after {
+    content: '→';
+    margin-left: 8px;
+    color: #667eea;
+}
+
+.example p {
+    color: #6c757d;
+    font-size: 0.95em;
+    margin-top: 10px;
+}
+
+.example em {
+    font-style: italic;
+    color: #495057;
+}
+
+.specs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.spec {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    padding: 20px;
+    background: white;
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.spec:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.spec-icon {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5em;
+}
+
+.spec-content h4 {
+    color: #2c3e50;
+    margin-bottom: 5px;
+    font-size: 1em;
+}
+
+.spec-content p {
+    color: #6c757d;
+    font-size: 0.9em;
+    margin: 2px 0;
+}
+
+.spec-content strong {
+    color: #495057;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
