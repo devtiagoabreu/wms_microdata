@@ -40,7 +40,7 @@
             top: 2mm;
             left: 5mm;
             width: 80mm;
-            height: 14mm;
+            height: 10.5mm; /* 30% de 35mm */
             background: repeating-linear-gradient(
                 90deg,
                 #000,
@@ -51,21 +51,29 @@
             opacity: 0.7;
         }
         
+        /* CÓDIGO MAIOR E CENTRALIZADO */
         .code-text {
             position: absolute;
-            top: 17mm;
-            left: 5mm;
+            top: 14mm; /* Abaixo do código de barras */
+            left: 0;
+            width: 100%;
+            text-align: center;
             font-family: 'Courier New', monospace;
             font-weight: bold;
-            font-size: 12px;
+            font-size: 14px; /* Aumentado */
+            color: #000;
         }
         
+        /* ENDEREÇO MAIOR E CENTRALIZADO */
         .address-text {
             position: absolute;
-            top: 22mm;
-            left: 5mm;
-            font-size: 10px;
+            top: 19mm;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 11px; /* Aumentado */
             line-height: 1.3;
+            color: #000;
         }
         
         .page-info {
@@ -112,13 +120,20 @@
             color: #7f8c8d;
             font-size: 0.85em;
         }
+        
+        /* Destaque para textos maiores */
+        .texto-destaque {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #2c3e50;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1><i class="fas fa-print"></i> Gerador para Impressora Argox</h1>
-            <p class="subtitle">Página: 99.8 × 79.0 mm • 2 etiquetas por página (uma acima da outra)</p>
+            <p class="subtitle texto-destaque">Página: 99.8 × 79.0 mm • 2 etiquetas por página • Textos maiores e centralizados</p>
         </header>
 
         <main>
@@ -156,6 +171,7 @@
                         </label>
                         <textarea id="endereco" name="endereco" rows="3" 
                                   placeholder="RUA | PRÉDIO | NÍVEL | APARTAMENTO" required>RUA | PRÉDIO | NÍVEL | APARTAMENTO</textarea>
+                        <small class="texto-destaque">O endereço será impresso em tamanho maior e centralizado</small>
                     </div>
 
                     <div class="impressora-info">
@@ -175,12 +191,13 @@
                             <small>Por página</small>
                         </div>
                         <div class="info-item">
-                            <i class="fas fa-ruler"></i>
-                            <div>90 × 35 mm</div>
-                            <small>Tamanho da etiqueta</small>
+                            <i class="fas fa-text-height"></i>
+                            <div>Texto maior</div>
+                            <small>Código: 14pt, Endereço: 11pt</small>
                         </div>
                     </div>
 
+                    <!-- PRÉVIA ATUALIZADA -->
                     <div class="page-preview">
                         <div class="etiqueta etiqueta-superior">
                             <div class="barcode-area"></div>
@@ -195,14 +212,18 @@
                     </div>
                     <div class="page-info">
                         <span>Prévia da página (escala real: 99.8 × 79.0 mm)</span>
+                        <p class="texto-destaque" style="margin-top: 5px; font-size: 0.9em;">
+                            <i class="fas fa-check-circle"></i> Textos maiores e centralizados | 
+                            <i class="fas fa-check-circle"></i> Código de barras incluído
+                        </p>
                     </div>
 
                     <div class="info-box">
                         <h3><i class="fas fa-info-circle"></i> Resumo da Geração</h3>
                         <div class="info-grid">
                             <div>
-                                <p><strong>Quantidade total:</strong> <span id="quantidade">10</span> etiquetas</p>
-                                <p><strong>Páginas necessárias:</strong> <span id="paginas">5</span> páginas</p>
+                                <p><strong>Quantidade total:</strong> <span id="quantidade" class="texto-destaque">10</span> etiquetas</p>
+                                <p><strong>Páginas necessárias:</strong> <span id="paginas" class="texto-destaque">5</span> páginas</p>
                             </div>
                             <div>
                                 <p><strong>Status:</strong> <span id="status" class="status-valid">Válido</span></p>
@@ -221,6 +242,7 @@
                 </form>
             </div>
 
+            <!-- Restante do HTML mantido igual -->
             <div class="card">
                 <h2><i class="fas fa-sync-alt"></i> Como Funciona o Incremento</h2>
                 <div class="sequence-example">
@@ -297,12 +319,12 @@
                     </div>
                     <div class="spec">
                         <div class="spec-icon">
-                            <i class="fas fa-layer-group"></i>
+                            <i class="fas fa-text-height"></i>
                         </div>
                         <div class="spec-content">
-                            <h4>Layout</h4>
-                            <p><strong>2 etiquetas</strong> por página</p>
-                            <small>Uma acima da outra</small>
+                            <h4>Tamanho do Texto</h4>
+                            <p><strong>Código: 14pt</strong></p>
+                            <p><strong>Endereço: 11pt</strong></p>
                         </div>
                     </div>
                     <div class="spec">
@@ -311,7 +333,7 @@
                         </div>
                         <div class="spec-content">
                             <h4>Código de Barras</h4>
-                            <p><strong>Área reservada</strong></p>
+                            <p><strong>Code128 incluído</strong></p>
                             <small>Parte superior da etiqueta</small>
                         </div>
                     </div>
@@ -320,14 +342,14 @@
         </main>
 
         <footer>
-            <p>Gerador para Impressora Argox &copy; 2024 | Layout: 99.8 × 79.0 mm, 2 etiquetas por página</p>
+            <p>Gerador para Impressora Argox &copy; 2024 | Textos maiores e centralizados | Código de barras incluído</p>
         </footer>
     </div>
 
     <div id="loading" class="loading-overlay">
         <div class="loading-content">
             <i class="fas fa-spinner fa-spin fa-3x"></i>
-            <p>Gerando PDF para impressora Argox...</p>
+            <p>Gerando PDF com textos maiores e código de barras...</p>
         </div>
     </div>
 

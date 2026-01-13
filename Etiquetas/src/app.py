@@ -1,6 +1,9 @@
 from flask import Flask, render_template, request, send_file, jsonify
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import mm
+from reportlab.graphics.barcode import code128
+from reportlab.graphics.shapes import Drawing
+from reportlab.graphics import renderPDF
 import re
 import io
 import math
@@ -122,30 +125,48 @@ def gerar_pdf_buffer(inicio, fim, endereco_completo):
         # Código atual
         codigo = f"{b:02d}.{s:02d}.{p:02d}.{a:02d}"
         
-        # **DESENHAR A ETIQUETA - SEM BORDA, APENAS TEXTO**
+        # **CÓDIGO DE BARRAS - ADICIONADO**
+        try:
+            # Altura do código de barras: ~30% da altura da etiqueta
+            barcode_height = ETIQUETA_HEIGHT * 0.3
+            barcode_width = ETIQUETA_WIDTH * 0.9  # 90% da largura
+            
+            # Posição do código de barras (parte superior da etiqueta)
+            barcode_x = x_pos + (ETIQUETA_WIDTH - barcode_width) / 2
+            barcode_y = y_pos + ETIQUETA_HEIGHT - barcode_height - 2
+            
+            # Criar código de barras Code128
+            barcode = code128.Code128(
+                codigo,
+                barWidth=0.25,
+                barHeight=barcode_height - 5,
+                humanReadable=False
+            )
+            
+            # Desenhar código de barras
+            barcode.drawOn(c, barcode_x, barcode_y)
+            
+        except Exception as e:
+            print(f"Erro ao gerar código de barras: {e}")
+            # Fallback: desenhar área do código de barras
+            c.setStrokeColorRGB(0.8, 0.8, 0.8)
+            c.setLineWidth(0.5)
+            c.rect(barcode_x, barcode_y, barcode_width, barcode_height, stroke=1, fill=0)
+            c.drawString(barcode_x + 5, barcode_y + barcode_height/2, "CÓDIGO DE BARRAS")
         
-        # **CÓDIGO DE BARRAS - OCUPA A PARTE SUPERIOR DA ETIQUETA**
-        # Altura do código de barras: ~40% da altura da etiqueta
-        barcode_height = ETIQUETA_HEIGHT * 0.4
-        
-        # Desenhar área do código de barras (visualização)
-        c.setStrokeColorRGB(0.9, 0.9, 0.9)
-        c.setLineWidth(0.1)
-        c.rect(x_pos, y_pos + ETIQUETA_HEIGHT - barcode_height, 
-               ETIQUETA_WIDTH, barcode_height, stroke=0, fill=0)
-        
-        # **TEXTO DO CÓDIGO - LOGO ABAIXO DO CÓDIGO DE BARRAS**
-        c.setFont("Helvetica-Bold", 12)
+        # **TEXTO DO CÓDIGO - MAIOR E CENTRALIZADO**
+        c.setFont("Helvetica-Bold", 14)  # Aumentado de 12 para 14
         c.setFillColorRGB(0, 0, 0)
         
-        # Posição do texto do código
-        codigo_x = x_pos + 5
-        codigo_y = y_pos + ETIQUETA_HEIGHT - barcode_height - 10
+        # Calcular largura do texto para centralizar
+        texto_largura = c.stringWidth(codigo, "Helvetica-Bold", 14)
+        codigo_x = x_pos + (ETIQUETA_WIDTH - texto_largura) / 2
+        codigo_y = y_pos + ETIQUETA_HEIGHT - barcode_height - 15  # Abaixo do código de barras
         
         c.drawString(codigo_x, codigo_y, codigo)
         
-        # **ENDEREÇO FIXO - ABAIXO DO CÓDIGO**
-        c.setFont("Helvetica", 10)
+        # **ENDEREÇO FIXO - MAIOR E CENTRALIZADO**
+        c.setFont("Helvetica", 11)  # Aumentado de 10 para 11
         
         # Quebrar o endereço se necessário
         endereco_linhas = []
@@ -153,7 +174,7 @@ def gerar_pdf_buffer(inicio, fim, endereco_completo):
         linha_atual = ""
         
         for palavra in palavras:
-            if len(linha_atual) + len(palavra) + 1 <= 35:  # Limite para caber na etiqueta
+            if len(linha_atual) + len(palavra) + 1 <= 30:  # Limite ajustado
                 linha_atual += (" " if linha_atual else "") + palavra
             else:
                 endereco_linhas.append(linha_atual)
@@ -162,10 +183,19 @@ def gerar_pdf_buffer(inicio, fim, endereco_completo):
         if linha_atual:
             endereco_linhas.append(linha_atual)
         
-        # Desenhar cada linha do endereço
+        # Calcular altura total do texto do endereço
+        altura_texto = len(endereco_linhas) * 13  # Aumentado espaçamento
+        
+        # Posicionar endereço centralizado verticalmente
+        area_restante = ETIQUETA_HEIGHT - barcode_height - 25  # Ajustado
+        inicio_endereco_y = y_pos + (area_restante - altura_texto) / 2
+        
+        # Desenhar cada linha do endereço CENTRALIZADA
         for i, texto in enumerate(endereco_linhas):
-            endereco_y = codigo_y - 15 - (i * 12)  # 12 pontos de espaçamento entre linhas
-            c.drawString(codigo_x, endereco_y, texto)
+            texto_largura = c.stringWidth(texto, "Helvetica", 11)
+            linha_x = x_pos + (ETIQUETA_WIDTH - texto_largura) / 2
+            linha_y = inicio_endereco_y - (i * 13)
+            c.drawString(linha_x, linha_y, texto)
         
         # **VERIFICA SE CHEGOU AO FIM**
         if b == b_fim and s == s_fim and p == p_fim:
@@ -186,8 +216,6 @@ def gerar_pdf_buffer(inicio, fim, endereco_completo):
                 b += 1
         
         etiqueta_atual += 1
-        
-        # Se completou uma página de 2 etiquetas, já criamos nova página acima
     
     c.save()
     buffer.seek(0)
