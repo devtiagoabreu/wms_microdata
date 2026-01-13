@@ -3,7 +3,7 @@
 
 Sistema de geração de etiquetas de endereçamento integrado ao ERP Microdata Sistemas para a Importadora DGB COMEX.
 
-![Tela do app](image.png)
+<img src="image.png" alt="Tela do app">
 
 ## 📋 Visão Geral
 
