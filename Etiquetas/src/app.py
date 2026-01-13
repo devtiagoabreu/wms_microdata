@@ -125,77 +125,79 @@ def gerar_pdf_buffer(inicio, fim, endereco_completo):
         # Código atual
         codigo = f"{b:02d}.{s:02d}.{p:02d}.{a:02d}"
         
-        # **CÓDIGO DE BARRAS - ADICIONADO**
+        # **BORDA DA ETIQUETA - FINA**
+        c.setStrokeColorRGB(0, 0, 0)  # Preto
+        c.setLineWidth(0.5)  # Fina
+        c.rect(x_pos, y_pos, ETIQUETA_WIDTH, ETIQUETA_HEIGHT, stroke=1, fill=0)
+        
+        # **CÓDIGO DE BARRAS - CENTRALIZADO E MAIOR (80% DA LARGURA)**
         try:
-            # Altura do código de barras: ~30% da altura da etiqueta
-            barcode_height = ETIQUETA_HEIGHT * 0.3
-            barcode_width = ETIQUETA_WIDTH * 0.9  # 90% da largura
+            # Altura do código de barras: ~25% da altura da etiqueta
+            barcode_height = ETIQUETA_HEIGHT * 0.25
+            barcode_width = ETIQUETA_WIDTH * 0.8  # 80% da largura como solicitado
             
-            # Posição do código de barras (parte superior da etiqueta)
+            # Posição do código de barras CENTRALIZADA
             barcode_x = x_pos + (ETIQUETA_WIDTH - barcode_width) / 2
-            barcode_y = y_pos + ETIQUETA_HEIGHT - barcode_height - 2
+            barcode_y = y_pos + ETIQUETA_HEIGHT - barcode_height - 3
             
             # Criar código de barras Code128
             barcode = code128.Code128(
                 codigo,
                 barWidth=0.25,
-                barHeight=barcode_height - 5,
+                barHeight=barcode_height - 2,
                 humanReadable=False
             )
             
-            # Desenhar código de barras
-            barcode.drawOn(c, barcode_x, barcode_y)
+            # Calcular largura real do código de barras
+            barcode_real_width = barcode.width
+            scale = barcode_width / barcode_real_width
+            
+            # Salvar estado, aplicar escala e desenhar
+            c.saveState()
+            c.translate(barcode_x, barcode_y)
+            c.scale(scale, 1)  # Apenas escala horizontal
+            barcode.drawOn(c, 0, 0)
+            c.restoreState()
             
         except Exception as e:
             print(f"Erro ao gerar código de barras: {e}")
-            # Fallback: desenhar área do código de barras
+            # Fallback: área do código de barras
             c.setStrokeColorRGB(0.8, 0.8, 0.8)
             c.setLineWidth(0.5)
             c.rect(barcode_x, barcode_y, barcode_width, barcode_height, stroke=1, fill=0)
-            c.drawString(barcode_x + 5, barcode_y + barcode_height/2, "CÓDIGO DE BARRAS")
         
         # **TEXTO DO CÓDIGO - MAIOR E CENTRALIZADO**
-        c.setFont("Helvetica-Bold", 14)  # Aumentado de 12 para 14
+        c.setFont("Helvetica-Bold", 16)  # AUMENTADO para 16pt
         c.setFillColorRGB(0, 0, 0)
         
         # Calcular largura do texto para centralizar
-        texto_largura = c.stringWidth(codigo, "Helvetica-Bold", 14)
+        texto_largura = c.stringWidth(codigo, "Helvetica-Bold", 16)
         codigo_x = x_pos + (ETIQUETA_WIDTH - texto_largura) / 2
-        codigo_y = y_pos + ETIQUETA_HEIGHT - barcode_height - 15  # Abaixo do código de barras
+        codigo_y = y_pos + ETIQUETA_HEIGHT - barcode_height - 18  # Ajustado
         
         c.drawString(codigo_x, codigo_y, codigo)
         
-        # **ENDEREÇO FIXO - MAIOR E CENTRALIZADO**
-        c.setFont("Helvetica", 11)  # Aumentado de 10 para 11
+        # **ENDEREÇO FIXO - EM UMA LINHA E CENTRALIZADO**
+        c.setFont("Helvetica", 12)  # AUMENTADO para 12pt para caber em uma linha
         
-        # Quebrar o endereço se necessário
-        endereco_linhas = []
-        palavras = endereco_completo.split()
-        linha_atual = ""
+        # Verificar se o endereço cabe em uma linha
+        endereco_texto = endereco_completo
+        texto_largura_endereco = c.stringWidth(endereco_texto, "Helvetica", 12)
         
-        for palavra in palavras:
-            if len(linha_atual) + len(palavra) + 1 <= 30:  # Limite ajustado
-                linha_atual += (" " if linha_atual else "") + palavra
-            else:
-                endereco_linhas.append(linha_atual)
-                linha_atual = palavra
+        # Se for muito longo, tentar reduzir um pouco
+        if texto_largura_endereco > ETIQUETA_WIDTH * 0.9:
+            c.setFont("Helvetica", 11)
+            texto_largura_endereco = c.stringWidth(endereco_texto, "Helvetica", 11)
         
-        if linha_atual:
-            endereco_linhas.append(linha_atual)
+        # Calcular posição X para centralizar
+        endereco_x = x_pos + (ETIQUETA_WIDTH - texto_largura_endereco) / 2
         
-        # Calcular altura total do texto do endereço
-        altura_texto = len(endereco_linhas) * 13  # Aumentado espaçamento
+        # Posição Y para o endereço (centro da área restante)
+        altura_restante = ETIQUETA_HEIGHT - barcode_height - 25
+        endereco_y = y_pos + (altura_restante / 2) + 5
         
-        # Posicionar endereço centralizado verticalmente
-        area_restante = ETIQUETA_HEIGHT - barcode_height - 25  # Ajustado
-        inicio_endereco_y = y_pos + (area_restante - altura_texto) / 2
-        
-        # Desenhar cada linha do endereço CENTRALIZADA
-        for i, texto in enumerate(endereco_linhas):
-            texto_largura = c.stringWidth(texto, "Helvetica", 11)
-            linha_x = x_pos + (ETIQUETA_WIDTH - texto_largura) / 2
-            linha_y = inicio_endereco_y - (i * 13)
-            c.drawString(linha_x, linha_y, texto)
+        # Desenhar endereço em UMA LINHA
+        c.drawString(endereco_x, endereco_y, endereco_texto)
         
         # **VERIFICA SE CHEGOU AO FIM**
         if b == b_fim and s == s_fim and p == p_fim:
